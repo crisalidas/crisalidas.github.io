@@ -1,7 +1,340 @@
 <!DOCTYPE html>
-<html>
-<body>
-<h1>Hello World</h1>
-<p>I'm hosted with GitHub Pages.</p>
-</body>
+<html
+lang="es">
+    <head>
+    <meta charset="UTF-8">
+    <title>3D</title>
+    </head>
+	
+    <body>
+    <canvas id="canvas3D" width="1300px" height="530px" style="border:1px solid gray"></canvas>
+			
+	<script>
+		var bPrincipal;
+		var seguirBuclePrincipal = true;
+		
+		var canvas3D = document.getElementById('canvas3D');
+        var ctx = canvas3D.getContext('2d');// Primer, y unico, elemento [0]
+		var canvasWidth  = 1300;
+		var canvasHeight = 530;
+		
+		var Xorigen2d = 0.50*canvasWidth;
+		var Yorigen2d = 0.50*canvasHeight;
+		
+		var longitudEjeX = 0.6*canvasHeight;
+		var colorEjeX    = "red";
+		var longitudEjeY = 0.6*canvasHeight;
+		var colorEjeY    = "green";
+		var longitudEjeZ = 0.6*canvasHeight;
+		var colorEjeZ    = "blue";
+		var color = "#efb71b";
+		
+		var r= 255;
+		var g= 100;
+		var b= 50;
+		
+		var incremento = 1; // ?
+		var signo = +1;
+		var longitud = 0;
+		var offset = 0;
+		
+		var dx = 0;
+		var dy = 0;
+		var dz = 0; // ?
+		
+		var zoom = 1; // Ahora sí se aplica correctamente. Antiguo 'factor'.
+		var dosPi = 2*Math.PI;
+		
+		var sectores = 16;
+		var lonchas = 8;
+		var altura = 50;
+		var alturaFinal = altura;
+		var distorsion = 2;
+		
+		var alfamov = 0;
+		
+		var alfaFigura=0;
+		var	betaFigura=0;
+		var gammaFigura=0;
+		
+		var alfaRotacion=0;
+		var betaRotacion=0;
+		var gammaRotacion=0;
+		
+		var alfaFiguraRotada=0;
+		var betaFiguraRotada=0;
+		var gammaFiguraRotada=0;
+		
+		var variacionAlfa=50;
+		var variacionBeta=50;
+		var variacionGamma=50;
+		
+		var poneColor = function(c){
+
+			ctx.strokeStyle = c; //ctx.strokeStyle = "rgba(0, 0, 255, 0.5)";
+		}
+		
+		var mostrarSegmentoAb3dEn2dIsometricoConOrigen = function(ax,ay,az,bx,by,bz){
+			//funcion implementada integramente por mi.
+			//pasar 3D a 2D:
+			
+			var ax2d = 0;
+			var ay2d = 0;
+			var bx2d = 0;
+			var by2d = 0;
+			
+			/*// ver de quitar isometrico y dejarlo plano !!!
+			
+			ax2d = Xorigen2d				+ 0.715*zoom*ay	- 0.715*zoom*ax;
+			ay2d = Yorigen2d - 0.817*zoom*az+ 0.409*zoom*ay	+ 0.409*zoom*ax;
+			bx2d = Xorigen2d				+ 0.715*zoom*by	- 0.715*zoom*bx;
+			by2d = Yorigen2d - 0.817*zoom*bz+ 0.409*zoom*by	+ 0.409*zoom*bx;
+		*/
+			// Perspectiva plana-frontal
+			
+			ax2d = Xorigen2d				+ 1*zoom*ay;
+			ay2d = Yorigen2d - 1*zoom*az;
+			bx2d = Xorigen2d				+ 1*zoom*by;
+			by2d = Yorigen2d - 1*zoom*bz;
+		
+		
+			// Trazar limpiamente el segmento final en pantalla !!
+			 
+			ctx.beginPath();
+			ctx.moveTo(ax2d,ay2d);
+			ctx.lineTo(bx2d,by2d);
+			ctx.closePath();
+			ctx.stroke();
+			
+			// llamada diferida a Caballera, para pruebas
+			//mostrarSegmentoAB3Den2DCaballeraconOrigen(ax,ay,az,bx,by,bz);
+		}
+		
+		var mostrarSegmentoAB3Den2DCaballeraconOrigen = function(ax,ay,az,bx,by,bz){
+			//funcion implementada integramente por mi.
+			//pasar 3D a 2D:
+			
+			var ax2d = 0;
+			var ay2d = 0;
+			var bx2d = 0;
+			var by2d = 0;
+			
+			ax2d = 600+Xorigen2d 		  + zoom*ay	- 0.5*zoom*ax;
+			ay2d = Yorigen2d 	- zoom*az			+ 0.5*zoom*ax;
+			bx2d = 600+Xorigen2d 		  + zoom*by	- 0.5*zoom*bx;
+			by2d = Yorigen2d	- zoom*bz			+ 0.5*zoom*bx;
+				
+			// trazar limpiamente el segmento final en pantalla !!
+			 
+			ctx.beginPath();
+			ctx.moveTo(ax2d,ay2d);
+			ctx.lineTo(bx2d,by2d);
+			ctx.closePath();
+			ctx.stroke();
+
+		}
+		
+		var trazaEjes = function(){
+			//funcion implementada integramente por mi.
+			
+			ctx.clearRect (0,0,canvasWidth,canvasHeight); // Borra canvas
+			ctx.lineWidth = 2;
+			
+			poneColor(colorEjeX);	// Eje X
+			mostrarSegmentoAb3dEn2dIsometricoConOrigen(0,0,0,longitudEjeX,0,0);
+			
+			poneColor(colorEjeY);	// Eje Y
+			mostrarSegmentoAb3dEn2dIsometricoConOrigen(0,0,0,0,longitudEjeY,0);
+			
+			poneColor(colorEjeZ);	// Eje Z
+			mostrarSegmentoAb3dEn2dIsometricoConOrigen(0,0,0,0,0,longitudEjeZ);
+			
+		}
+		
+		var dibujaCaracol = function(pw,pj,tamaño){
+		
+		var cx = 0;
+		var cy = 0;
+		var cz = 0;
+		
+		var cxAux = 0;
+		var cyAux = 0;
+		var czAux = 0;
+		
+		var cxr = 0;
+		var cyr = 0;
+		var czr = 0;
+		
+		var cxrd = 0;
+		var cyrd = 0;
+		var czrd = 0;
+		
+			//Calcular figura y meter en matriz de estructura!!
+					
+			var figura = new Array(pw);			// ****	Definir y rellenar array 3D. Por fin!!! **********
+												//	****************************************************
+			for ( var f = 0 ; f < pw ; f++){
+				figura[f] = new Array(pj);
+				for ( var r = 0 ; r < pj ; r++){
+					figura[f][r] = new Array(3);
+					for ( var s = 0; s < 3 ; s++){
+						figura[f][r][s] = s;			//valores 0,1,2 por ejemplo
+					}
+				}
+			}
+			
+			var w = 0;		
+			var j = 0;
+
+			trazaEjes();	// mover a funciones meta !!	
+			poneColor(color);
+			ctx.lineWidth = 1;
+			
+			for ( var f = 0 ; f < pw ; f++){		// Crea estructura de la figura. Servira para rotaciones y/o
+				for ( var r = 0 ; r < pj ; r++){	// movimientos varios, ademas de para seciones del toroide
+
+					// calcular figura en coordenadas Cartesianas XYZ
+					
+					cx = tamaño*(1+Math.sin(j))*Math.cos(w)*w;
+					cy = tamaño*(1+Math.sin(j))*Math.sin(w)*w;
+					cz = tamaño*Math.cos(j)*w;
+					
+					// He tenido que recurrir a internet!! No me salia con coordenadas polares....
+					
+					// rotacion EjeX. alfaRotacion
+					
+					cyAux = cy*Math.cos(alfaRotacion) - cz*Math.sin(alfaRotacion);
+					czAux = cy*Math.sin(alfaRotacion) + cz*Math.cos(alfaRotacion);
+					cxAux = cx;
+					
+					cx = cxAux;
+					cy = cyAux;
+					cz = czAux;
+					
+					// rotacion EjeY. betaRotacion
+					
+					czAux = cz*Math.cos(betaRotacion) - cx*Math.sin(betaRotacion);
+					cyAux = cy;
+					cxAux = cz*Math.sin(betaRotacion) + cx*Math.cos(betaRotacion);
+					
+					cx = cxAux;
+					cy = cyAux;
+					cz = czAux;
+					
+					// rotacion EjeZ. gammaRotacion
+					
+					cxAux = cx*Math.cos(gammaRotacion) - cy*Math.sin(gammaRotacion);
+					cyAux = cx*Math.sin(gammaRotacion) + cy*Math.cos(gammaRotacion);
+					czAux = cz;
+					
+					cxr = cx; // Ojo anulada rotacion
+					cyr = cy; // Ojo anulada rotacion
+					czr = cz; // Ojo anulada rotacion
+					
+					// añadir desplazamiento
+					
+					cxrd = cxr + dx;
+					cyrd = cyr + dy;
+					czrd = czr + dz; // Desplazamiento Z ?
+					
+					// grabar figura
+					
+					figura[f][r][0]= cxrd;
+					figura[f][r][1]= cyrd;
+					figura[f][r][2]= czrd;
+					
+					j = j + dosPi/pj;
+				}
+				w = w + dosPi/pw;
+				j=0; // Esto no haria falta pq marca vueltas enteras y las formulas trigonometricas no varian.
+			}
+			
+			for ( var f = 0 ; f < pw ; f++){	//	lee figura modificada y representa pares de puntos
+				for ( var r = 0 ; r < pj ; r++){	//	adyacentes, entre rebanadas y diagonales !
+				
+					// adyacentes!!
+					ctx.strokeStyle = "gray";
+					
+					mostrarSegmentoAb3dEn2dIsometricoConOrigen(figura[f][r][0],figura[f][r][1],figura[f][r][2],figura[f][(r+1)%pj][0],figura[f][(r+1)%pj][1],figura[f][(r+1)%pj][2]);
+					
+					// inter-rebanadas!!
+					ctx.strokeStyle = "black";;
+					
+					mostrarSegmentoAb3dEn2dIsometricoConOrigen(figura[f][r][0],figura[f][r][1],figura[f][r][2],figura[(f+1)%pw][r][0],figura[(f+1)%pw][r][1],figura[(f+1)%pw][r][2]);
+					
+					// diagonales triangulares!!
+					ctx.strokeStyle = color;
+					
+					mostrarSegmentoAb3dEn2dIsometricoConOrigen(figura[f][r][0],figura[f][r][1],figura[f][r][2],figura[(f+1)%pw][(r+1)%pj][0],figura[(f+1)%pw][(r+1)%pj][1],figura[(f+1)%pw][(r+1)%pj][2]);
+				}
+			}
+		}
+
+		var dibujaFigura = function(s,l,t){
+		
+				dibujaCaracol(s,l,t); // pw,pj,tamaño
+				
+				
+			// Aqui puedo meter movimiento Figura de dos maneras:
+			//	B: Modificando en misma area que rotaciones
+			//	en funcion dibujaCaracol. Esto sí que funciona...
+			
+				alfamov=alfamov+0.10; // prueba movimiento circular en plano cx/cy...
+				dx = 100*Math.sin(alfamov);
+				dy = 100*Math.cos(alfamov);
+				dz = 200*Math.sin(alfamov+3);
+				
+				alfaRotacion = (alfaRotacion+0.08);
+				betaRotacion = (betaRotacion-0.02);
+						//gammaRotacion= (gammaRotacion+0.063);
+				//	tamaño variables
+				//	distorsion= 3 + 2*Math.sin(0.1*alfamov);
+		}
+		
+		var controlaFigura = function(s,l,e,d,c,alfa,beta,gamma){ // funcion meta que gestiona botones [antes de llamar
+												// a la funcion principal dibujaFigura()]
+				sectores = s;	// 0-100
+				lonchas = l;	// 0-100
+				alturaFinal = Math.trunc(0.000008*e*e*e*altura);		//0-100 -> 0-8*altura
+				distorsion = Math.trunc(0.04*d);						//0-100 -> 0-4
+				color = c;
+				alfaRotacion = (+180-3.6*alfa) *dosPi/360; //0-360 -> 0-dosPi
+				betaRotacion = (+180-3.6*beta) *dosPi/360; //0-360 -> 0-dosPi;
+				gammaRotacion= (+180-3.6*gamma)*dosPi/360; //0-360 -> 0-dosPi;
+		}
+		
+		var BuclePrincipal = function(){
+		
+			dibujaFigura(sectores,lonchas,alturaFinal);
+			
+			if (seguirBuclePrincipal) bPrincipal = setTimeout(BuclePrincipal,100);
+		}
+		
+		//llamada Main
+		BuclePrincipal();
+		
+	</script>
+	
+	<form oninput="	sa.value = Math.trunc(1.0*a.value);
+					sb.value = Math.trunc(1.0*b.value);
+					sc.value = Math.trunc(0.0008*c.value*c.value*c.value);
+					sd.value = Math.trunc(0.04*d.value);
+					se.value = Math.trunc(-180+3.6*e.value);
+					sf.value = Math.trunc(-180+3.6*f.value);
+					sg.value = Math.trunc(-180+3.6*g.value);					
+					controlaFigura(a.value, b.value, c.value, d.value, colo.value, e.value, f.value, g.value );
+				">
+			
+		C&nbsp 							<input type="color" name="colo" value="#efb71b">
+		&nbsp&nbspSec. Lado&nbsp0 		<input type="range" name="a" value="50"><output name="sa" for="a"></output>
+		&nbsp&nbspSec. Arri/bajo&nbsp0 	<input type="range" name="b" value="10"><output name="sb" for="b"></output>
+		&nbsp&nbspaltura 0%&nbsp		<input type="range" name="c" value="50"><output name="sc" for="c"></output>
+		&nbsp&nbspDistorsion&nbsp0		<input type="range" name="d" value="50"><output name="sd" for="d"></output>
+		<br>&nbspEjeXPropio Rotacion&nbsp	<input type="range" name="e" value="50"><output name="se" for="e"></output>
+		&nbsp&nbspEjeYPropio Rotacion&nbsp	<input type="range" name="f" value="50"><output name="sf" for="f"></output>
+		&nbsp&nbspEjeZPropio Rotacion&nbsp 	<input type="range" name="g" value="50"><output name="sg" for="g"></output>
+
+	</form>
+	
+	</body>
 </html>
